@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ako ang bagyo</title>
+<style>
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: #0b1018;
+    overflow: hidden;
+    font-family: Helvetica, Arial, sans-serif;
+  }
+
+  #start {
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    width: 180px;
+    height: 56px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #172536;
+    background: #88F3FF;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    z-index: 10;
+  }
+
+  .card {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: var(--box-w);
+    height: var(--box-h);
+    margin-left: calc(var(--box-w) / -2);
+    box-sizing: border-box;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background: #172536;
+    color: #88F3FF;
+    font-size: 25px;
+    font-weight: bold;
+    border-radius: 6px;
+    box-shadow: 0 0 20px rgba(136, 243, 255, 0.25);
+    will-change: transform;
+  }
+</style>
+</head>
+<body>
+
+<button id="start">▶ Start</button>
+<audio id="music" src="song.mp3" preload="auto"></audio>
+
+<script>
+  [0.0,  "ako,ako"]
+  [2.5,  "ako ang bagyooooo"],
+  [4.6,  "kulimlim ng langit"],
+  [8.0,  "sa inyong dalawa"],
+  [10.5, "bulong ko sa hangin"],
+  [13.5, "sana di kayo masaya"],
+  [16.0, "sa tibay ng bahay"],
+  [20.0, "na titirhan nyo"],
+  [23.0, "tatangayin ko bawat yeroooo"],
+  [26.0  "dilim ng paligid"],
+  [29.0, "buhos ng emosyon"],
+  [32.0, "kulog ng pag-ibig"],
+  [34.0, "sa sama ng panahon"],
+  [36.0, "sa tibay ng bahay"],
+  [38.0, "na titirhan nyoooo"],
+  [40.0, "gigibain ko"],
+  [42.0, "mga pader nyoooooo"],
+  [46.0, "dahil ako"],
+  [48.0, "ako ang bagyoooooooo"],
+];
+
+const BOX_W = 350;
+const BOX_H = 300;
+const RISE_SPEED = 120;        
+const BOTTOM_SPAWN_OFFSET = 0;
+const GAP = 40;                
+// ------------------------------------------
+
+document.documentElement.style.setProperty("--box-w", Math.min(BOX_W, window.innerWidth - 20) + "px");
+document.documentElement.style.setProperty("--box-h", BOX_H + "px");
+
+const music = document.getElementById("music");
+const startBtn = document.getElementById("start");
+
+let cards = [];          // { el, y }
+let nextIndex = 0;
+let lastTime = 0;
+
+function spawnY() {
+  return window.innerHeight + BOTTOM_SPAWN_OFFSET;
+}
+
+function canSpawn() {
+  if (cards.length === 0) return true;
+  const last = cards[cards.length - 1];
+  return last.y + BOX_H + GAP <= spawnY();
+}
+
+function spawnCard(text) {
+  const el = document.createElement("div");
+  el.className = "card";
+  el.textContent = text;
+  document.body.appendChild(el);
+  const card = { el, y: spawnY() };
+  el.style.transform = `translateY(${card.y}px)`;
+  cards.push(card);
+}
+
+function tick(now) {
+  const dt = (now - lastTime) / 1000;
+  lastTime = now;
+
+  // spawn next lyric when its time has come
+  if (
+    nextIndex < LYRICS.length &&
+    music.currentTime >= LYRICS[nextIndex][0] &&
+    canSpawn()
+  ) {
+    spawnCard(LYRICS[nextIndex][1]);
+    nextIndex++;
+  }
+
+  // move cards up, remove the ones that left the screen
+  for (let i = cards.length - 1; i >= 0; i--) {
+    const c = cards[i];
+    c.y -= RISE_SPEED * dt;
+    c.el.style.transform = `translateY(${c.y}px)`;
+    if (c.y + BOX_H < 0) {
+      c.el.remove();
+      cards.splice(i, 1);
+    }
+  }
+
+  const finished = nextIndex >= LYRICS.length && cards.length === 0 && music.ended;
+  if (finished) {
+    startBtn.textContent = "↻ Replay";
+    startBtn.style.display = "block";
+    return;
+  }
+  requestAnimationFrame(tick);
+}
+
+startBtn.addEventListener("click", () => {
+  // reset in case of replay
+  cards.forEach(c => c.el.remove());
+  cards = [];
+  nextIndex = 0;
+  music.currentTime = 0;
+
+  startBtn.style.display = "none";
+  music.play().then(() => {
+    lastTime = performance.now();
+    requestAnimationFrame(tick);
+  }).catch(err => {
+    alert("Could not play song.mp3 — check the file name and that it is uploaded.");
+    startBtn.style.display = "block";
+    console.error(err);
+  });
+});
+</script>
+</body>
+</html>
